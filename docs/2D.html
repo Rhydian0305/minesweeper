@@ -243,12 +243,23 @@
         }
 
         function handleCellClick(x, y) {
-            if (grid[x][y].revealed || grid[x][y].flagged) return;
+            if (grid[x][y].flagged) return;
 
             if (isFirstClick) {
                 isFirstClick = false;
-                createGrid(x, y);  // 重新创建网格，确保首次点击安全
+                createGrid(x, y);
                 startTimer();
+            }
+
+            // 如果是已經揭露的格子，檢查周圍旗子數量
+            if (grid[x][y].revealed) {
+                const surroundingFlags = countSurroundingFlags(x, y);
+                // 如果周圍旗子數量等於格子上的數字
+                if (surroundingFlags === grid[x][y].count) {
+                    // 打開周圍未揭露且未插旗的格子
+                    revealSurroundingCells(x, y);
+                }
+                return;
             }
 
             grid[x][y].revealed = true;
@@ -256,7 +267,7 @@
             if (grid[x][y].mine) {
                 alert('Game Over!');
                 revealAll();
-                clearInterval(timerInterval);
+                stopTimer();
                 return;
             }
 
@@ -352,6 +363,51 @@
             createGrid();
             renderGrid();
         });
+
+        // 添加計算周圍旗子數量的函數
+        function countSurroundingFlags(x, y) {
+            let flagCount = 0;
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (
+                        nx >= 0 && ny >= 0 &&
+                        nx < gridSize && ny < gridSize &&
+                        grid[nx][ny].flagged
+                    ) {
+                        flagCount++;
+                    }
+                }
+            }
+            return flagCount;
+        }
+
+        // 添加揭露周圍格子的函數
+        function revealSurroundingCells(x, y) {
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (
+                        nx >= 0 && ny >= 0 &&
+                        nx < gridSize && ny < gridSize &&
+                        !grid[nx][ny].revealed && !grid[nx][ny].flagged
+                    ) {
+                        // 如果點到地雷，遊戲結束
+                        if (grid[nx][ny].mine) {
+                            grid[nx][ny].revealed = true;
+                            alert('Game Over!');
+                            revealAll();
+                            stopTimer();
+                            return;
+                        }
+                        // 否則正常揭露格子
+                        handleCellClick(nx, ny);
+                    }
+                }
+            }
+        }
 
         createGrid();
         renderGrid();

@@ -287,7 +287,16 @@
       if (gameOver) return;
 
       const cell = document.querySelector(`.cell[data-coords='${x1},${x2},${x3},${x4}']`);
-      if (!cell || cell.classList.contains("revealed") || cell.classList.contains("flagged")) return;
+      if (!cell || cell.classList.contains("revealed") || cell.classList.contains("flagged")) {
+        // 如果是已揭露的格子，檢查是否可以快速打開
+        if (cell && cell.classList.contains("revealed")) {
+          const surroundingFlags = countSurroundingFlags(x1, x2, x3, x4);
+          if (surroundingFlags === data[x1][x2][x3][x4]) {
+            revealSurroundingCells(x1, x2, x3, x4);
+          }
+        }
+        return;
+      }
 
       cell.classList.add("revealed");
       cellsToReveal--;
@@ -472,6 +481,71 @@
         }
       }
     });
+
+    // 添加計算周圍旗子數量的函數
+    const countSurroundingFlags = (x1, x2, x3, x4) => {
+      let flagCount = 0;
+      for (let w = -1; w <= 1; w++) {
+        for (let x = -1; x <= 1; x++) {
+          for (let y = -1; y <= 1; y++) {
+            for (let z = -1; z <= 1; z++) {
+              const nx1 = x1 + w;
+              const nx2 = x2 + x;
+              const nx3 = x3 + y;
+              const nx4 = x4 + z;
+              if (
+                nx1 >= 0 && nx1 < n &&
+                nx2 >= 0 && nx2 < n &&
+                nx3 >= 0 && nx3 < n &&
+                nx4 >= 0 && nx4 < n
+              ) {
+                const cell = document.querySelector(`.cell[data-coords='${nx1},${nx2},${nx3},${nx4}']`);
+                if (cell && cell.classList.contains("flagged")) {
+                  flagCount++;
+                }
+              }
+            }
+          }
+        }
+      }
+      return flagCount;
+    };
+
+    // 添加揭露周圍格子的函數
+    const revealSurroundingCells = (x1, x2, x3, x4) => {
+      for (let w = -1; w <= 1; w++) {
+        for (let x = -1; x <= 1; x++) {
+          for (let y = -1; y <= 1; y++) {
+            for (let z = -1; z <= 1; z++) {
+              const nx1 = x1 + w;
+              const nx2 = x2 + x;
+              const nx3 = x3 + y;
+              const nx4 = x4 + z;
+              if (
+                nx1 >= 0 && nx1 < n &&
+                nx2 >= 0 && nx2 < n &&
+                nx3 >= 0 && nx3 < n &&
+                nx4 >= 0 && nx4 < n
+              ) {
+                const cell = document.querySelector(`.cell[data-coords='${nx1},${nx2},${nx3},${nx4}']`);
+                if (cell && !cell.classList.contains("revealed") && !cell.classList.contains("flagged")) {
+                  if (data[nx1][nx2][nx3][nx4] === -1) {
+                    cell.classList.add("bomb");
+                    cell.textContent = "💣";
+                    gameOver = true;
+                    clearInterval(timerInterval);
+                    revealAllCells();
+                    alert("Game Over!");
+                    return;
+                  }
+                  revealCell(nx1, nx2, nx3, nx4);
+                }
+              }
+            }
+          }
+        }
+      }
+    };
   </script>
 </body>
 
